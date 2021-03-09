@@ -1,7 +1,7 @@
 # 
 # curl + quiche build image
 #
-FROM rust:1.39 AS builder
+FROM rust:latest AS builder
 
 # Dependencies
 RUN apt-get update && apt-get install -y cmake golang curl automake autoconf libtool pkg-config
@@ -12,19 +12,21 @@ WORKDIR /build
 RUN git clone --recursive https://github.com/cloudflare/quiche.git
 
 # Build boringssl
-RUN cd quiche/deps/boringssl && \
-    mkdir build && \
-    cd build && \
-    cmake -DCMAKE_POSITION_INDEPENDENT_CODE=on .. && \
-    make -j`nproc` && \
-    cd .. && \
-    mkdir -p .openssl/lib && \
-    cp build/crypto/libcrypto.a build/ssl/libssl.a .openssl/lib && \
-    ln -s $PWD/include .openssl
+#RUN cd quiche/deps/boringssl && \
+    #    mkdir build && \
+    #cd build && \
+    #cmake -DCMAKE_POSITION_INDEPENDENT_CODE=on .. && \
+    #make -j`nproc` && \
+    #cd .. && \
+    #mkdir -p .openssl/lib && \
+    #cp build/libcrypto.a build/libssl.a .openssl/lib && \
+    #ln -s $PWD/include .openssl
 
 # Build quiche
 RUN cd quiche && \
-    QUICHE_BSSL_PATH=$PWD/deps/boringssl cargo build --release --features pkg-config-meta
+    cargo build --release --features ffi,pkg-config-meta,qlog && \
+    mkdir deps/boringssl/src/lib && \
+    ln -vnf $(find target/release -name libcrypto.a -o -name libssl.a) deps/boringssl/src/lib/
 
 # Build curl
 RUN git clone https://github.com/curl/curl.git && \
@@ -32,8 +34,11 @@ RUN git clone https://github.com/curl/curl.git && \
     ./buildconf && \
     ./configure LDFLAGS="-Wl,-rpath,$PWD/../quiche/target/release" \
         --prefix=/usr/local \
-        --with-ssl=$PWD/../quiche/deps/boringssl/.openssl \
-        --with-quiche=$PWD/../quiche/target/release && \
+        --with-ssl=$PWD/../quiche/deps/boringssl/src \
+        --with-quiche=$PWD/../quiche/target/release \
+        --disable-ldap \
+        --disable-ldaps \
+        && \
     make -j`nproc` && \
     make install
 

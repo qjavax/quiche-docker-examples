@@ -1,7 +1,7 @@
 #
 # nginx + quiche build image
 #
-FROM rust:1.39 AS builder
+FROM rust:latest AS builder
 
 # Dependencies
 RUN apt-get update && apt-get install -y cmake golang curl libpcre3-dev zlib1g-dev
