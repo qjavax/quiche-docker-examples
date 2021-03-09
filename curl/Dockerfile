@@ -11,17 +11,6 @@ RUN apt-get update && apt-get install -y cmake golang curl automake autoconf lib
 WORKDIR /build
 RUN git clone --recursive https://github.com/cloudflare/quiche.git
 
-# Build boringssl
-#RUN cd quiche/deps/boringssl && \
-    #    mkdir build && \
-    #cd build && \
-    #cmake -DCMAKE_POSITION_INDEPENDENT_CODE=on .. && \
-    #make -j`nproc` && \
-    #cd .. && \
-    #mkdir -p .openssl/lib && \
-    #cp build/libcrypto.a build/libssl.a .openssl/lib && \
-    #ln -s $PWD/include .openssl
-
 # Build quiche
 RUN cd quiche && \
     cargo build --release --features ffi,pkg-config-meta,qlog && \
